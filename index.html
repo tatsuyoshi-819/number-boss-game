@@ -1,0 +1,147 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>ゲートランナー</title>
+<style>
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; min-height: 100vh; color: white; text-align: center;
+    font-family: system-ui, sans-serif;
+    background: linear-gradient(#6bc7ee 0 38%, #d6f2ff 38% 42%, #437b48 42%);
+  }
+  main { max-width: 700px; margin: auto; padding: 16px; }
+  h1 { text-shadow: 0 3px 5px #345; }
+  #scene {
+    position: relative; height: 390px; overflow: hidden;
+    border: 4px solid white; border-radius: 18px;
+    background: linear-gradient(#b9eaff 0 45%, #78b763 45% 100%);
+    box-shadow: 0 12px 30px #132d4566;
+  }
+  /* 奥に向かって細く見えるコース */
+  #road {
+    position: absolute; bottom: -30px; left: 50%; width: 88%; height: 78%;
+    transform: translateX(-50%) perspective(300px) rotateX(18deg);
+    transform-origin: bottom;
+    background: repeating-linear-gradient(90deg, #ffffff22 0 3px, transparent 3px 90px),
+                linear-gradient(90deg, #bd5d3d, #ef9870, #bd5d3d);
+    border: 5px solid #fff3d5;
+  }
+  #gateArea {
+    position: absolute; top: 100px; left: 0; width: 100%;
+    display: flex; justify-content: space-evenly;
+  }
+  .gate {
+    width: 36%; padding: 14px 4px; border: 4px solid white;
+    border-radius: 12px; background: #24a9dbdd;
+    font-size: 26px; font-weight: bold; text-shadow: 0 2px 3px #345;
+    box-shadow: 0 5px 12px #2348;
+  }
+  .gate:last-child { background: #e76e69dd; }
+  #crowd { position: absolute; bottom: 30px; width: 100%; font-size: 25px; }
+  #boss { position: absolute; top: 25px; width: 100%; font-size: 42px; }
+  #status { font-size: 20px; font-weight: bold; }
+  button { cursor: pointer; }
+  .controls button {
+    margin: 8px; padding: 12px 20px; border: 0; border-radius: 10px;
+    font-size: 18px; font-weight: bold; color: white; background: #1769aa;
+  }
+  #message { min-height: 28px; font-weight: bold; }
+</style>
+</head>
+<body>
+<main>
+  <h1>ゲートランナー</h1>
+  <p id="status"></p>
+  <div id="scene">
+    <div id="boss"></div>
+    <div id="gateArea"></div>
+    <div id="crowd"></div>
+  </div>
+  <p id="message"></p>
+  <div class="controls" id="controls"></div>
+</main>
+
+<script>
+  let people = 1;
+  let stage = 0;
+  let bossHP = 0;
+  let mode = "gates";
+
+  const rounds = [
+    { left: "×2", right: "+3", calcLeft: n => n * 2, calcRight: n => n + 3 },
+    { left: "+5", right: "×2", calcLeft: n => n + 5, calcRight: n => n * 2 },
+    { left: "×3", right: "+10", calcLeft: n => n * 3, calcRight: n => n + 10 }
+  ];
+
+  function render() {
+    document.getElementById("status").textContent =
+      `人数：${people}人　｜　${mode === "gates" ? `ゲート ${stage + 1} / 3` : "ボス戦"}`;
+
+    document.getElementById("crowd").textContent =
+      "🧍".repeat(Math.min(people, 18)) + (people > 18 ? ` ＋${people - 18}人` : "");
+
+    const gateArea = document.getElementById("gateArea");
+    const controls = document.getElementById("controls");
+
+    if (mode === "gates") {
+      document.getElementById("boss").textContent = "";
+      gateArea.innerHTML =
+        `<div class="gate">${rounds[stage].left}</div>
+         <div class="gate">${rounds[stage].right}</div>`;
+      controls.innerHTML =
+        `<button onclick="choose(0)">左を選ぶ</button>
+         <button onclick="choose(1)">右を選ぶ</button>`;
+      document.getElementById("message").textContent = "左右どちらかのゲートを選ぼう！";
+    } else if (mode === "battle") {
+      gateArea.innerHTML = "";
+      document.getElementById("boss").textContent = `👹 ボス HP：${bossHP}`;
+      controls.innerHTML = `<button onclick="attack()">みんなで攻撃！</button>`;
+      document.getElementById("message").textContent = "人数が多いほど大ダメージ！";
+    } else {
+      gateArea.innerHTML = "";
+      document.getElementById("boss").textContent = bossHP <= 0 ? "🏆 ボス撃破！" : "💀 ゲームオーバー";
+      controls.innerHTML = `<button onclick="restart()">もう一度遊ぶ</button>`;
+      document.getElementById("message").textContent =
+        bossHP <= 0 ? "勝利！" : "人数が足りなかった…";
+    }
+  }
+
+  function choose(side) {
+    const round = rounds[stage];
+    people = side === 0 ? round.calcLeft(people) : round.calcRight(people);
+    stage++;
+
+    if (stage === rounds.length) {
+      mode = "battle";
+      bossHP = 60;
+    }
+    render();
+  }
+
+  function attack() {
+    bossHP -= people;
+    if (bossHP <= 0) {
+      bossHP = 0;
+      mode = "end";
+    } else {
+      people = Math.max(0, people - 2);
+      if (people === 0) mode = "end";
+    }
+    render();
+  }
+
+  function restart() {
+    people = 1;
+    stage = 0;
+    bossHP = 0;
+    mode = "gates";
+    render();
+  }
+
+  render();
+</script>
+</main>
+</body>
+</html>
